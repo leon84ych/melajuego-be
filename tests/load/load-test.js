@@ -4,7 +4,7 @@ const { io } = require("socket.io-client");
 const URL = "http://localhost:8080"; // Tu servidor local
 //const URL = "https://fuchile-be.fly.dev"
 const TOTAL_USERS = 100;
-const ARRIVAL_DELAY_MS = 2000; // 1 usuario cada 2 segundos
+const ARRIVAL_DELAY_MS = 1000;
 
 let connectedCount = 0;
 
@@ -23,7 +23,7 @@ function createClient(index) {
         
         // Simular el ingreso a la sala de inmediato tras conectar
         socket.emit("join_room", {
-            roomCode: "VIANI",
+            roomCode: `VIANI${index%10}`,
             nickname: `Jugador${index}`
         });
     });

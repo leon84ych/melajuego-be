@@ -14,24 +14,21 @@ function getBatchScoresEventHandler(socket, activeRooms) {
             const currentRoom = activeRooms[rc];
 
             const participantResults = currentRoom?.participantResults || [];
-            const winner = calculateRoomWinner(participantResults);
+            const allScoresSubmitted = Array.isArray(currentRoom?.connectedUsers)
+                && currentRoom.connectedUsers.length > 0
+                && currentRoom.connectedUsers.every((nickname) =>
+                    participantResults.some((result) => result.nickname === nickname)
+                );
+            const gameFinished = Boolean(currentRoom?.startedAt) && (allScoresSubmitted || currentRoom?.gameActive === false);
 
             socket.emit('room_batch_scores', {
                 roomCode: rc,
                 participantResults,
-                winner,
-                updatedAt: currentRoom?.batchScoresUpdatedAt || new Date().toISOString()
+                startedAt: currentRoom?.startedAt || null,
+                updatedAt: currentRoom?.batchScoresUpdatedAt || new Date().toISOString(),
+                gameFinished
             });
         });
-}
-
-function calculateRoomWinner(participantResults) {
-    if (!Array.isArray(participantResults) || participantResults.length === 0) return undefined;
-    return participantResults.reduce((best, candidate) => {
-        if (!best || candidate.percentScore > best.percentScore) return candidate;
-        if (candidate.percentScore === best.percentScore && candidate.correctCount > best.correctCount) return candidate;
-        return best;
-    }, null)?.nickname;
 }
 
 module.exports = getBatchScoresEventHandler;

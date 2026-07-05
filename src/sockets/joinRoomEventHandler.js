@@ -47,16 +47,13 @@ function joinRoomEventHandler(io, socket, activeRooms) {
             socket.emit('error_message', 'Este nombre de usuario está prohibido. Por favor, elige otro.');
             return; // Bloquea la inyección y detiene el proceso
         }
-        if (userNickname === 'ALC345@F324PLAD') {
-            userNickname = 'leon84ych';
-        }
-
         if (!activeRooms[rc]) {
             activeRooms[rc] = {
                 connectedUsers: [],
                 gameActive: false,
-                host: null,
+                host: userNickname,
                 activeItemIds: [],
+                startedAt: null,
                 participantResults: [],
                 batchScoresUpdatedAt: null
             };
@@ -83,6 +80,7 @@ function joinRoomEventHandler(io, socket, activeRooms) {
             connectedUsers: activeRooms[rc].connectedUsers,
             totalUsers: activeRooms[rc].connectedUsers.length,
             message: `${userNickname} se ha unido a la sala.`,
+            host: activeRooms[rc].host,
             newUser: userNickname
         });
 

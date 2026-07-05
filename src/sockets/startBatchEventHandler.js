@@ -58,13 +58,15 @@ function startBatchEventHandler(io, socket, activeRooms) {
         currentRoom.gameActive = true;
         currentRoom.host = socket.nickname; // The sender becomes the established target player to guess
         currentRoom.activeItemIds = cleanIds;
+        currentRoom.startedAt = new Date().toISOString();
 
         logger.info(`[PARTIDA] Juego iniciado en sala ${rc} por el anfitrión: ${socket.nickname}`);
 
         // Broadcast the active game sequence configuration to EVERYONE inside the room lobby
         io.to(rc).emit('batch_started', {
             host: currentRoom.host,
-            itemIds: currentRoom.activeItemIds
+            itemIds: currentRoom.activeItemIds,
+            startedAt: currentRoom.startedAt
         });
 
         broadcastAvailableRooms(io, activeRooms);

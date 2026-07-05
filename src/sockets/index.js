@@ -3,13 +3,14 @@ const joinRoomEventHandler = require('./joinRoomEventHandler');
 const startBatchEventHandler = require('./startBatchEventHandler');
 const disconnectHandler = require('./disconnectEventHandler');
 const submitBatchEventHandler = require('./submitBatchEventHandler');
-const getBatchScoresEventHandler = require('./getBatchScoresEventHandler'); 
+const getBatchScoresEventHandler = require('./getBatchScoresEventHandler');
 const getAvailableRoomsHandler = require('./getAvailableRoomsHandler');
 
 
-const activeRooms = {}; 
+const activeRooms = {};
 
 function initSocketServer(io) {
+    
     io.use((socket, next) => {
         return next();
         const token = socket.handshake.auth?.token;
@@ -21,23 +22,25 @@ function initSocketServer(io) {
     });
 
     io.on('connection', (socket) => {
+
         logger.info(`Usuario conectado: ${socket.id}`);
+
         socket.on('disconnect', (reason) => {
             logger.info(`🚨 DETALLE DESCONEXIÓN ${socket.id}: Razón = ${reason}`);
         });
 
         joinRoomEventHandler(io, socket, activeRooms);
-        
+
         startBatchEventHandler(io, socket, activeRooms);
 
         disconnectHandler(io, socket, activeRooms);
-        
+
         submitBatchEventHandler(io, socket, activeRooms);
 
         getBatchScoresEventHandler(socket, activeRooms);
-        
+
         getAvailableRoomsHandler(socket, activeRooms);
-        
+
     });
 }
 

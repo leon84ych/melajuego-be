@@ -21,6 +21,9 @@ function disconnectEventHandler(io, socket, activeRooms) {
                 activeRooms[rc].gameActive = false;
                 activeRooms[rc].host = null;
                 activeRooms[rc].activeItemIds = [];
+                activeRooms[rc].startedAt = null;
+                activeRooms[rc].participantResults = [];
+                activeRooms[rc].batchScoresUpdatedAt = null;
                 io.to(rc).emit('game_aborted', { message: 'El anfitrión abandonó la sesión de juego.' });
             }
 

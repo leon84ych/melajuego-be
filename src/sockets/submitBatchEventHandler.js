@@ -32,6 +32,11 @@ function submitBatchEventHandler(io, socket, activeRooms) {
         const currentRoom = activeRooms[rc];
         if (!currentRoom) return;
 
+        if (!currentRoom.gameActive || typeof currentRoom.startedAt !== 'string' || !currentRoom.startedAt) {
+            socket.emit('error_message', 'La partida no está activa en esta sala.');
+            return;
+        }
+
         if (!Array.isArray(results)) return;
         if (typeof percentScore !== 'number' || typeof correctCount !== 'number' || typeof incorrectCount !== 'number' || typeof totalCards !== 'number') return;
 
@@ -54,6 +59,16 @@ function submitBatchEventHandler(io, socket, activeRooms) {
             currentRoom.participantResults.push(participantResult);
         }
 
+        const allScoresSubmitted = Array.isArray(currentRoom.connectedUsers)
+            && currentRoom.connectedUsers.length > 0
+            && currentRoom.connectedUsers.every((nickname) =>
+                currentRoom.participantResults.some((result) => result.nickname === nickname)
+            );
+
+        if (allScoresSubmitted) {
+            currentRoom.gameActive = false;
+        }
+
         currentRoom.batchScoresUpdatedAt = new Date().toISOString();
 
         const winnerRecord = currentRoom.participantResults.reduce((best, candidate) => {
@@ -62,13 +77,12 @@ function submitBatchEventHandler(io, socket, activeRooms) {
             return best;
         }, null);
 
-        const winner = winnerRecord ? winnerRecord.nickname : undefined;
-
         const payloadToSend = {
             roomCode: rc,
             participantResults: currentRoom.participantResults,
-            winner,
-            updatedAt: currentRoom.batchScoresUpdatedAt
+            startedAt: currentRoom.startedAt || null,
+            updatedAt: currentRoom.batchScoresUpdatedAt,
+            gameFinished: allScoresSubmitted
         };
 
         io.to(rc).emit('room_batch_scores', payloadToSend);
