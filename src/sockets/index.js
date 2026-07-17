@@ -1,17 +1,30 @@
 const logger = require('../config/logger');
-const joinRoomEventHandler = require('./joinRoomEventHandler');
+const joinRoomEventHandler = require('./RoomJoinEventHandler');
 const startBatchEventHandler = require('./startBatchEventHandler');
 const disconnectHandler = require('./disconnectEventHandler');
 const submitBatchEventHandler = require('./submitBatchEventHandler');
 const getBatchScoresEventHandler = require('./getBatchScoresEventHandler');
 const getAvailableRoomsHandler = require('./getAvailableRoomsHandler');
+const roomUsersEventHandler = require('./RoomUsersEventHandler');
 
+
+const DEFAULT_MAX_CONNECTED_USERS = 200;
+const parsedMaxConnectedUsers = Number.parseInt(process.env.MAX_CONNECTED_USERS, 10);
+const maxConnectedUsers = Number.isInteger(parsedMaxConnectedUsers) && parsedMaxConnectedUsers > 0
+    ? parsedMaxConnectedUsers
+    : DEFAULT_MAX_CONNECTED_USERS;
 
 const activeRooms = {};
 
 function initSocketServer(io) {
-    
+    logger.info(`Límite máximo de usuarios conectados: ${maxConnectedUsers}`);
+
     io.use((socket, next) => {
+        const connectedUsers = io.of('/').sockets.size;
+        if (connectedUsers >= maxConnectedUsers) {
+            logger.warn(`Conexión rechazada: límite máximo de usuarios alcanzado (${maxConnectedUsers}).`);
+            return next(new Error('Servidor lleno. Intenta nuevamente en unos minutos.'));
+        }
         return next();
         const token = socket.handshake.auth?.token;
         if (token === "BBjwBRieBjINCAIQABiABBjwBRieBjINCAMQABiABBjwBRieBjINCAQQABiABBjwBRieBjIN") {
@@ -40,6 +53,8 @@ function initSocketServer(io) {
         getBatchScoresEventHandler(socket, activeRooms);
 
         getAvailableRoomsHandler(socket, activeRooms);
+
+        roomUsersEventHandler(io, socket, activeRooms);
 
     });
 }

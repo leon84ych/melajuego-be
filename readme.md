@@ -43,6 +43,17 @@ http://localhost:8080
 
 > Nota: el servidor escucha en `8080`.
 
+## Variables de entorno
+
+- `MAX_CONNECTED_USERS`: límite global de conexiones simultáneas por WebSocket.
+  - Valor por defecto: `100`.
+  - Debe ser un entero mayor a `0`.
+  - Ejemplo:
+
+```bash
+MAX_CONNECTED_USERS=100 npm start
+```
+
 ## Ejecutar con Podman
 
 1. Construye la imagen:

@@ -1,6 +1,12 @@
 
 const logger = require('../config/logger');
 
+const DEFAULT_RESULTS_GRACE_SECONDS = 10;
+const parsedResultsGraceSeconds = Number.parseInt(process.env.RESULTS_GRACE_SECONDS, 10);
+const resultsGraceSeconds = Number.isInteger(parsedResultsGraceSeconds) && parsedResultsGraceSeconds >= 0
+    ? parsedResultsGraceSeconds
+    : DEFAULT_RESULTS_GRACE_SECONDS;
+
 function submitBatchEventHandler(io, socket, activeRooms) {
     // 3. Recibir resultados de batch desde el cliente
     socket.on('submit_batch_result', (payload) => {
@@ -32,8 +38,17 @@ function submitBatchEventHandler(io, socket, activeRooms) {
         const currentRoom = activeRooms[rc];
         if (!currentRoom) return;
 
-        if (!currentRoom.gameActive || typeof currentRoom.startedAt !== 'string' || !currentRoom.startedAt) {
+        const startedAtMs = Date.parse(currentRoom.startedAt || '');
+        const durationMs = Number(currentRoom.durationMinutes) * 60 * 1000;
+        if (!Number.isFinite(startedAtMs) || !Number.isFinite(durationMs) || durationMs <= 0) {
             socket.emit('error_message', 'La partida no está activa en esta sala.');
+            return;
+        }
+
+        const nowMs = Date.now();
+        const submissionDeadlineMs = startedAtMs + durationMs + (resultsGraceSeconds * 1000);
+        if (nowMs > submissionDeadlineMs) {
+            socket.emit('error_message', 'La ventana para enviar resultados ya cerró.');
             return;
         }
 
@@ -65,7 +80,12 @@ function submitBatchEventHandler(io, socket, activeRooms) {
                 currentRoom.participantResults.some((result) => result.nickname === nickname)
             );
 
-        if (allScoresSubmitted) {
+        const timeFinished = Number.isFinite(startedAtMs)
+            && Number.isFinite(durationMs)
+            && durationMs > 0
+            && nowMs >= (startedAtMs + durationMs);
+
+        if (allScoresSubmitted || timeFinished) {
             currentRoom.gameActive = false;
         }
 
@@ -81,8 +101,9 @@ function submitBatchEventHandler(io, socket, activeRooms) {
             roomCode: rc,
             participantResults: currentRoom.participantResults,
             startedAt: currentRoom.startedAt || null,
+            durationMinutes: currentRoom.durationMinutes || null,
             updatedAt: currentRoom.batchScoresUpdatedAt,
-            gameFinished: allScoresSubmitted
+            gameFinished: allScoresSubmitted || timeFinished
         };
 
         io.to(rc).emit('room_batch_scores', payloadToSend);

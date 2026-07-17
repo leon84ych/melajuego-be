@@ -19,7 +19,7 @@ function getAvailableRoomsHandler(socket, activeRooms) {
                 }
             }
         }
-
+        logger.info(`get_available_rooms response: ${JSON.stringify(availableRooms)}`);
         socket.emit('available_rooms_list', availableRooms);
     });
 }

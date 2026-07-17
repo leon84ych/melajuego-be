@@ -2,11 +2,11 @@ const logger = require('../config/logger');
 const { roomCodeRegex, nicknameRegex, usernameIsValid } = require('../utils/validators');
 const broadcastAvailableRooms = require('./broadcastAvailableRooms');
 
-function joinRoomEventHandler(io, socket, activeRooms) {
+function RoomJoinEventHandler(io, socket, activeRooms) {
 
     // 1. Un usuario crea o se une a una sala con un código (ej: "SALA-123")
-    socket.on('join_room', (payload) => {
-        logger.info(`join_room payload: ${payload ? JSON.stringify(payload) : 'Payload vacío'}`);
+    socket.on('room_join', (payload, callback) => {
+        logger.info(`room_join payload: ${payload ? JSON.stringify(payload) : 'Payload vacío'}`);
         if (!payload || typeof payload !== 'object') return;
         const { roomCode, nickname } = payload;
 
@@ -19,7 +19,7 @@ function joinRoomEventHandler(io, socket, activeRooms) {
         if (socket.roomCode && socket.nickname) {
             if (socket.roomCode === rc && socket.nickname === userNickname) {
                 // If it is an identical double-trigger from Angular, ignore it safely
-                logger.info(`[AVISO] Ignorando join_room duplicado inmediato para ${socket.id}`);
+                logger.info(`[AVISO] Ignorando room_join duplicado inmediato para ${socket.id}`);
                 return;
             } else {
                 // If they try to change nicknames on the fly without disconnecting, kill it
@@ -28,7 +28,7 @@ function joinRoomEventHandler(io, socket, activeRooms) {
                 return;
             }
         }
-        
+
         if (!roomCodeRegex.test(rc)) {
             console.warn(`[SEGURIDAD] Intento de inyección bloqueado desde ${socket.id}. Payload: ${rc}`);
             // Opcional: Enviar un evento de error privado al atacante
@@ -38,13 +38,18 @@ function joinRoomEventHandler(io, socket, activeRooms) {
 
         if (!nicknameRegex.test(userNickname)) {
             console.warn(`[SEGURIDAD] Nickname malicioso bloqueado desde ${socket.id}: ${userNickname}`);
-            socket.emit('error_message', 'El nombre de usuario contiene caracteres prohibidos.');
-            return; // Bloquea la inyección y detiene el proceso
+            // En lugar de emitir un evento 'error_message' genérico, respondes al callback de inmediato
+            if (typeof callback === 'function') {
+                return callback({ success: false, error: 'El nombre de usuario solo permite letras, números y @.' });
+            }
+            return;
         }
         //Valida el nombre de usuario contra la lista negra de nombres prohibidos
         if (!usernameIsValid(userNickname)) {
             console.warn(`[SEGURIDAD] Nickname prohibido bloqueado desde ${socket.id}: ${userNickname}`);
-            socket.emit('error_message', 'Este nombre de usuario está prohibido. Por favor, elige otro.');
+            if (typeof callback === 'function') {
+                return callback({ success: false, error: 'Este nombre de usuario está prohibido.' });
+            }
             return; // Bloquea la inyección y detiene el proceso
         }
         if (!activeRooms[rc]) {
@@ -54,6 +59,7 @@ function joinRoomEventHandler(io, socket, activeRooms) {
                 host: userNickname,
                 activeItemIds: [],
                 startedAt: null,
+                durationMinutes: null,
                 participantResults: [],
                 batchScoresUpdatedAt: null
             };
@@ -71,22 +77,30 @@ function joinRoomEventHandler(io, socket, activeRooms) {
         socket.roomCode = rc;
         socket.nickname = userNickname;
 
+        if (typeof callback === 'function') {
+            callback({
+                success: true,
+                roomCode: rc,
+                nickname: userNickname,
+                isHost: activeRooms[rc].host === userNickname
+            });
+        }
 
-        logger.info(`Usuario ${socket.id} se unió a la sala: ${rc} (${userNickname})`);
-        logger.info(`Lista actual de la sala ${rc}: ${JSON.stringify(activeRooms[rc])}`);
+        logger.info(`room_join:success u ${userNickname} joined room ${rc}`);
 
-        io.to(rc).emit('room_updated', {
+        const roomUpdatedMessage = {
             roomCode: rc,
             connectedUsers: activeRooms[rc].connectedUsers,
-            totalUsers: activeRooms[rc].connectedUsers.length,
-            message: `${userNickname} se ha unido a la sala.`,
             host: activeRooms[rc].host,
-            newUser: userNickname
-        });
+            totalUsers: activeRooms[rc].connectedUsers.length,
+            message: `${userNickname} se ha unido a la sala.`
+        };
+
+        io.to(rc).emit('room_updated', roomUpdatedMessage);
 
         broadcastAvailableRooms(io, activeRooms);
     });
 }
 
 
-module.exports = joinRoomEventHandler;
+module.exports = RoomJoinEventHandler;

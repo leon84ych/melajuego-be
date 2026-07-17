@@ -11,7 +11,7 @@ function startBatchEventHandler(io, socket, activeRooms) {
         // Anti-crash safety check
         if (!payload || typeof payload !== 'object') return;
 
-        const { roomCode, itemIds } = payload;
+        const { roomCode, itemIds, durationMinutes } = payload;
         const rc = socket.roomCode; // Read room from the verified socket session directly
 
         // Security check: Verify socket is actually joined to the room it claims
@@ -40,6 +40,12 @@ function startBatchEventHandler(io, socket, activeRooms) {
             return;
         }
 
+        const parsedDurationMinutes = Number(durationMinutes);
+        if (!Number.isFinite(parsedDurationMinutes) || parsedDurationMinutes <= 0) {
+            socket.emit('error_message', 'La duración de la partida no es válida.');
+            return;
+        }
+
         // Validate each item ID string signature schema patterns to block deep query injection
         const idSignatureRegex = /^[a-zA-Z0-9_]{1,30}$/;
         const cleanIds = [];
@@ -59,6 +65,7 @@ function startBatchEventHandler(io, socket, activeRooms) {
         currentRoom.host = socket.nickname; // The sender becomes the established target player to guess
         currentRoom.activeItemIds = cleanIds;
         currentRoom.startedAt = new Date().toISOString();
+        currentRoom.durationMinutes = parsedDurationMinutes;
 
         logger.info(`[PARTIDA] Juego iniciado en sala ${rc} por el anfitrión: ${socket.nickname}`);
 
@@ -66,7 +73,8 @@ function startBatchEventHandler(io, socket, activeRooms) {
         io.to(rc).emit('batch_started', {
             host: currentRoom.host,
             itemIds: currentRoom.activeItemIds,
-            startedAt: currentRoom.startedAt
+            startedAt: currentRoom.startedAt,
+            durationMinutes: currentRoom.durationMinutes
         });
 
         broadcastAvailableRooms(io, activeRooms);

@@ -28,12 +28,17 @@ function disconnectEventHandler(io, socket, activeRooms) {
             }
 
             // Notificamos a los sobrevivientes enviando la propiedad correcta de usuarios conectados
-            io.to(rc).emit('room_updated', {
+
+            let roomUpdatedMessage = {
                 roomCode: rc,
                 connectedUsers: activeRooms[rc].connectedUsers, // Corregido
                 totalUsers: activeRooms[rc].connectedUsers.length, // Corregido
                 message: `${userNickname || 'Un usuario'} ha abandonado la sala.`
-            });
+            }
+
+            logger.info(`disconnect:room_updated payload: ${JSON.stringify(roomUpdatedMessage)}`);
+            
+            io.to(rc).emit('room_updated', roomUpdatedMessage);
 
             // Si ya no queda nadie en la sala de forma absoluta, limpiamos la memoria RAM del servidor
             if (activeRooms[rc].connectedUsers.length === 0) {

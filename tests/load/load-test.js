@@ -3,7 +3,7 @@ const { io } = require("socket.io-client");
 
 const URL = "http://localhost:8080"; // Tu servidor local
 //const URL = "https://fuchile-be.fly.dev"
-const TOTAL_USERS = 100;
+const TOTAL_USERS = 300;
 const ARRIVAL_DELAY_MS = 1000;
 
 let connectedCount = 0;
@@ -19,10 +19,10 @@ function createClient(index) {
 
     socket.on("connect", () => {
         connectedCount++;
-        console.log(`[TEST] Cliente ${index} conectado con éxito (${connectedCount}/${TOTAL_USERS})`);
+        console.log(`[TEST] Cliente ${index} conectado con éxito a (VIANI${index%10}) (${connectedCount}/${TOTAL_USERS})`);
         
         // Simular el ingreso a la sala de inmediato tras conectar
-        socket.emit("join_room", {
+        socket.emit("room_join", {
             roomCode: `VIANI${index%10}`,
             nickname: `Jugador${index}`
         });
