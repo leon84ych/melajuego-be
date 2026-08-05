@@ -100,6 +100,7 @@ function submitBatchEventHandler(io, socket, activeRooms) {
                 const adjustedScore = Number((result.percentScore * timeFactor).toFixed(2));
 
                 const userStats = roomGeneralStats[result.nickname] || {
+                    nickname: result.nickname,
                     batchCount: 0,
                     totalTimeMs: 0,
                     totalBatchTimeMs: 0,
@@ -118,11 +119,28 @@ function submitBatchEventHandler(io, socket, activeRooms) {
                     : null;
 
                 roomGeneralStats[result.nickname] = userStats;
-                roomGeneralScorePayload = roomGeneralStats;
             });
 
+            const roomGeneralScoreArray = Object.values(roomGeneralStats)
+                .map((stats) => ({
+                    nickname: stats.nickname,
+                    batchCount: stats.batchCount,
+                    totalTimeMs: stats.totalTimeMs,
+                    totalBatchTimeMs: stats.totalBatchTimeMs,
+                    accumulatedScore: stats.accumulatedScore,
+                    room_general_score: stats.room_general_score,
+                    cumulativeTimeRatio: stats.cumulativeTimeRatio
+                }))
+                .sort((a, b) => {
+                    if (b.room_general_score !== a.room_general_score) {
+                        return b.room_general_score - a.room_general_score;
+                    }
+                    return a.cumulativeTimeRatio - b.cumulativeTimeRatio;
+                });
+
             currentRoom.roomGeneralStats = roomGeneralStats;
-            currentRoom.room_general_score = roomGeneralScorePayload;
+            currentRoom.room_general_score = roomGeneralScoreArray;
+            roomGeneralScorePayload = roomGeneralScoreArray;
         }
 
         currentRoom.batchScoresUpdatedAt = new Date().toISOString();
