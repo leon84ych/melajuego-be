@@ -85,8 +85,44 @@ function submitBatchEventHandler(io, socket, activeRooms) {
             && durationMs > 0
             && nowMs >= (startedAtMs + durationMs);
 
+        let roomGeneralScorePayload = null;
         if (allScoresSubmitted || timeFinished) {
             currentRoom.gameActive = false;
+
+            const roomGeneralStats = currentRoom.roomGeneralStats || {};
+            currentRoom.participantResults.forEach((result) => {
+                const submittedAtMs = Date.parse(result.timestamp);
+                const safeSubmittedAtMs = Number.isFinite(submittedAtMs) ? submittedAtMs : nowMs;
+                const timeTakenMs = Math.max(0, safeSubmittedAtMs - startedAtMs);
+                const effectiveTimeMs = Math.min(timeTakenMs, durationMs);
+                const penaltyRate = 0.4;
+                const timeFactor = 1 - Math.min(1, effectiveTimeMs / durationMs) * penaltyRate;
+                const adjustedScore = Number((result.percentScore * timeFactor).toFixed(2));
+
+                const userStats = roomGeneralStats[result.nickname] || {
+                    batchCount: 0,
+                    totalTimeMs: 0,
+                    totalBatchTimeMs: 0,
+                    accumulatedScore: 0,
+                    room_general_score: null,
+                    cumulativeTimeRatio: null
+                };
+
+                userStats.batchCount += 1;
+                userStats.totalTimeMs += timeTakenMs;
+                userStats.totalBatchTimeMs += durationMs;
+                userStats.accumulatedScore += adjustedScore;
+                userStats.room_general_score = Number((userStats.accumulatedScore / userStats.batchCount).toFixed(2));
+                userStats.cumulativeTimeRatio = userStats.totalBatchTimeMs > 0
+                    ? Number((userStats.totalTimeMs / userStats.totalBatchTimeMs).toFixed(4))
+                    : null;
+
+                roomGeneralStats[result.nickname] = userStats;
+                roomGeneralScorePayload = roomGeneralStats;
+            });
+
+            currentRoom.roomGeneralStats = roomGeneralStats;
+            currentRoom.room_general_score = roomGeneralScorePayload;
         }
 
         currentRoom.batchScoresUpdatedAt = new Date().toISOString();
@@ -97,16 +133,19 @@ function submitBatchEventHandler(io, socket, activeRooms) {
             return best;
         }, null);
 
-        const payloadToSend = {
-            roomCode: rc,
-            participantResults: currentRoom.participantResults,
-            startedAt: currentRoom.startedAt || null,
-            durationMinutes: currentRoom.durationMinutes || null,
-            updatedAt: currentRoom.batchScoresUpdatedAt,
-            gameFinished: allScoresSubmitted || timeFinished
-        };
+        if (allScoresSubmitted || timeFinished) {
+            const payloadToSend = {
+                roomCode: rc,
+                participantResults: currentRoom.participantResults,
+                startedAt: currentRoom.startedAt || null,
+                durationMinutes: currentRoom.durationMinutes || null,
+                updatedAt: currentRoom.batchScoresUpdatedAt,
+                gameFinished: true,
+                room_general_score: roomGeneralScorePayload
+            };
 
-        io.to(rc).emit('room_batch_scores', payloadToSend);
+            io.to(rc).emit('room_batch_scores', payloadToSend);
+        }
     });
 }
 

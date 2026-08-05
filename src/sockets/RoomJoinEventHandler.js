@@ -61,8 +61,14 @@ function RoomJoinEventHandler(io, socket, activeRooms) {
                 startedAt: null,
                 durationMinutes: null,
                 participantResults: [],
-                batchScoresUpdatedAt: null
+                batchScoresUpdatedAt: null,
+                room_general_score: null,
+                roomGeneralStats: {}
             };
+        } else if (!activeRooms[rc].host) {
+            // Reassign host if room exists but lost its host, so connected clients get the updated UI state.
+            activeRooms[rc].host = userNickname;
+            logger.info(`[HOST] Sala ${rc} no tenía host; asignado ${userNickname}.`);
         }
 
         // Prevent duplicate names within the same room session

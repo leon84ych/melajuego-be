@@ -62,12 +62,29 @@ function startBatchEventHandler(io, socket, activeRooms) {
 
         // Commit state parameters to room memory database records on the server
         currentRoom.gameActive = true;
-        currentRoom.host = socket.nickname; // The sender becomes the established target player to guess
+        currentRoom.participantResults = [];
+        currentRoom.batchScoresUpdatedAt = null;
+        let hostUpdated = false;
+        if (!currentRoom.host) {
+            currentRoom.host = socket.nickname; // Set host only when none exists yet
+            hostUpdated = true;
+        }
         currentRoom.activeItemIds = cleanIds;
         currentRoom.startedAt = new Date().toISOString();
         currentRoom.durationMinutes = parsedDurationMinutes;
 
         logger.info(`[PARTIDA] Juego iniciado en sala ${rc} por el anfitrión: ${socket.nickname}`);
+
+        // Broadcast host update to the room so clients can hide/disable host-only UI
+        if (hostUpdated) {
+            io.to(rc).emit('room_updated', {
+                roomCode: rc,
+                connectedUsers: currentRoom.connectedUsers || [],
+                host: currentRoom.host,
+                totalUsers: (currentRoom.connectedUsers || []).length,
+                message: `El host de la sala se ha establecido en ${currentRoom.host}.`
+            });
+        }
 
         // Broadcast the active game sequence configuration to EVERYONE inside the room lobby
         io.to(rc).emit('batch_started', {
