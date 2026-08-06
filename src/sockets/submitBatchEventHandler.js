@@ -105,19 +105,14 @@ function submitBatchEventHandler(io, socket, activeRooms) {
                     totalTimeMs: 0,
                     totalBatchTimeMs: 0,
                     accumulatedScore: 0,
-                    room_general_score: null,
+                    roomGeneralScore: null,
                     cumulativeTimeRatio: null
                 };
 
                 userStats.batchCount += 1;
                 userStats.totalTimeMs += timeTakenMs;
                 userStats.totalBatchTimeMs += durationMs;
-                userStats.accumulatedScore += adjustedScore;
-                userStats.room_general_score = Number((userStats.accumulatedScore / userStats.batchCount).toFixed(2));
-                userStats.cumulativeTimeRatio = userStats.totalBatchTimeMs > 0
-                    ? Number((userStats.totalTimeMs / userStats.totalBatchTimeMs).toFixed(4))
-                    : null;
-
+                userStats.accumulatedScore += result.correctCount;
                 roomGeneralStats[result.nickname] = userStats;
             });
 
@@ -125,21 +120,21 @@ function submitBatchEventHandler(io, socket, activeRooms) {
                 .map((stats) => ({
                     nickname: stats.nickname,
                     batchCount: stats.batchCount,
-                    totalTimeMs: stats.totalTimeMs,
-                    totalBatchTimeMs: stats.totalBatchTimeMs,
+                    totalTimeMs: Number((stats.totalTimeMs / 1000).toFixed(2)),
+                    totalBatchTimeMs: Number((stats.totalBatchTimeMs / 1000).toFixed(2)),
                     accumulatedScore: stats.accumulatedScore,
-                    room_general_score: stats.room_general_score,
+                    roomGeneralScore: stats.roomGeneralScore,
                     cumulativeTimeRatio: stats.cumulativeTimeRatio
                 }))
                 .sort((a, b) => {
-                    if (b.room_general_score !== a.room_general_score) {
-                        return b.room_general_score - a.room_general_score;
+                    if (b.roomGeneralScore !== a.roomGeneralScore) {
+                        return b.roomGeneralScore - a.roomGeneralScore;
                     }
                     return a.cumulativeTimeRatio - b.cumulativeTimeRatio;
                 });
 
             currentRoom.roomGeneralStats = roomGeneralStats;
-            currentRoom.room_general_score = roomGeneralScoreArray;
+            currentRoom.roomGeneralScores = roomGeneralScoreArray;
             roomGeneralScorePayload = roomGeneralScoreArray;
         }
 
@@ -159,7 +154,7 @@ function submitBatchEventHandler(io, socket, activeRooms) {
                 durationMinutes: currentRoom.durationMinutes || null,
                 updatedAt: currentRoom.batchScoresUpdatedAt,
                 gameFinished: true,
-                room_general_score: roomGeneralScorePayload
+                roomGeneralScore: roomGeneralScorePayload
             };
 
             io.to(rc).emit('room_batch_scores', payloadToSend);
