@@ -11,7 +11,7 @@ function startBatchEventHandler(io, socket, activeRooms) {
         // Anti-crash safety check
         if (!payload || typeof payload !== 'object') return;
 
-        const { roomCode, itemIds, durationMinutes } = payload;
+        const { roomCode, itemIds, durationMinutes, component } = payload;
         const rc = socket.roomCode; // Read room from the verified socket session directly
 
         // Security check: Verify socket is actually joined to the room it claims
@@ -87,12 +87,16 @@ function startBatchEventHandler(io, socket, activeRooms) {
         }
 
         // Broadcast the active game sequence configuration to EVERYONE inside the room lobby
-        io.to(rc).emit('batch_started', {
+        const batchMsg = {
             host: currentRoom.host,
+            component: component,
             itemIds: currentRoom.activeItemIds,
             startedAt: currentRoom.startedAt,
             durationMinutes: currentRoom.durationMinutes
-        });
+        };
+
+        logger.info(`[batch_started] emmited: ${batchMsg ? JSON.stringify(batchMsg) : 'Mensaje vacío'}`);
+        io.to(rc).emit('batch_started', batchMsg);
 
         broadcastAvailableRooms(io, activeRooms);
     });

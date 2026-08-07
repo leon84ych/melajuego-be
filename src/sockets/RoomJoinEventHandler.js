@@ -98,8 +98,7 @@ function RoomJoinEventHandler(io, socket, activeRooms) {
             roomCode: rc,
             connectedUsers: activeRooms[rc].connectedUsers,
             host: activeRooms[rc].host,
-            totalUsers: activeRooms[rc].connectedUsers.length,
-            message: `${userNickname} se ha unido a la sala.`
+            totalUsers: activeRooms[rc].connectedUsers.length
         };
 
         io.to(rc).emit('room_updated', roomUpdatedMessage);
