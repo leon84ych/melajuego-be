@@ -17,7 +17,8 @@ const io = new Server(server, {
     cors: {
         origin: [
              "http://localhost:4200",
-             "https://leon84ych.github.io"
+             "https://leon84ych.github.io",
+             "https://fuchile.netlify.app"
         ],
         methods: ["GET", "POST"]
     }
