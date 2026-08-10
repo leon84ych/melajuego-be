@@ -18,7 +18,7 @@ const io = new Server(server, {
         origin: [
              "http://localhost:4200",
              "https://leon84ych.github.io",
-             "https://fuchile.netlify.app"
+             "https://melajuego.netlify.app"
         ],
         methods: ["GET", "POST"]
     }

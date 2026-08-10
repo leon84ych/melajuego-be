@@ -1,6 +1,6 @@
-# Fuchile Backend
+# Melajuego Backend
 
-Backend WebSocket para Fuchile, construido con `Express` y `Socket.IO`.
+Backend WebSocket para Melajuego, construido con `Express` y `Socket.IO`.
 
 ## Descripción general
 
@@ -59,12 +59,12 @@ MAX_CONNECTED_USERS=100 npm start
 1. Construye la imagen:
 
 ```bash
-podman build -t fuchile-be .
+podman build -t melajuego-be .
 ```
 
 2. Ejecuta el contenedor con la misma configuracion que en Fly.io:
 ```bash
-podmarun -d --name fuchile-be-test --cpus="1.0" --memory="1024m" -p 8080:8080 localhost/fuchile-be
+podmarun -d --name melajuego-be-test --cpus="1.0" --memory="1024m" -p 8080:8080 localhost/melajuego-be
 ```
 
 3. Verifica que el servicio esté disponible en:
@@ -75,23 +75,23 @@ http://localhost:8080
 
 4. Elimina el contenedor 
 ```bash
-leon@pavilion:~/git/leon84ych/fuchile-be$ podman ps 
+leon@pavilion:~/git/leon84ych/melajuego-be$ podman ps 
 CONTAINER ID  IMAGE                        COMMAND     CREATED         STATUS         PORTS                   NAMES
-3bd6622a6820  localhost/fuchile-be:latest  npm start   11 minutes ago  Up 11 minutes  0.0.0.0:8080->8080/tcp  fuchile-be-test
-leon@pavilion:~/git/leon84ych/fuchile-be$ podman stop 3bd
+3bd6622a6820  localhost/melajuego-be:latest  npm start   11 minutes ago  Up 11 minutes  0.0.0.0:8080->8080/tcp  melajuego-be-test
+leon@pavilion:~/git/leon84ych/melajuego-be$ podman stop 3bd
 3bd
-leon@pavilion:~/git/leon84ych/fuchile-be$ podman rm 3bd
+leon@pavilion:~/git/leon84ych/melajuego-be$ podman rm 3bd
 3bd
 ```
 
 4. Eliminar la imágen: 
 ```bash
-leon@pavilion:~/git/leon84ych/fuchile-be$ podman images
+leon@pavilion:~/git/leon84ych/melajuego-be$ podman images
 REPOSITORY              TAG         IMAGE ID      CREATED         SIZE
-localhost/fuchile-be    latest      c116268915f1  12 minutes ago  216 MB
+localhost/melajuego-be    latest      c116268915f1  12 minutes ago  216 MB
 docker.io/library/node  20-slim     9da6b4e352d0  2 months ago    205 MB
-leon@pavilion:~/git/leon84ych/fuchile-be$ podman rmi c11
-Untagged: localhost/fuchile-be:latest
+leon@pavilion:~/git/leon84ych/melajuego-be$ podman rmi c11
+Untagged: localhost/melajuego-be:latest
 ```
 
 ## Despliegue en Fly.io
