@@ -11,7 +11,7 @@ function startBatchEventHandler(io, socket, activeRooms) {
         // Anti-crash safety check
         if (!payload || typeof payload !== 'object') return;
 
-        const { roomCode, itemIds } = payload;
+        const { roomCode, itemIds, durationMinutes, component } = payload;
         const rc = socket.roomCode; // Read room from the verified socket session directly
 
         // Security check: Verify socket is actually joined to the room it claims
@@ -40,6 +40,12 @@ function startBatchEventHandler(io, socket, activeRooms) {
             return;
         }
 
+        const parsedDurationMinutes = Number(durationMinutes);
+        if (!Number.isFinite(parsedDurationMinutes) || parsedDurationMinutes <= 0) {
+            socket.emit('error_message', 'La duración de la partida no es válida.');
+            return;
+        }
+
         // Validate each item ID string signature schema patterns to block deep query injection
         const idSignatureRegex = /^[a-zA-Z0-9_]{1,30}$/;
         const cleanIds = [];
@@ -56,18 +62,41 @@ function startBatchEventHandler(io, socket, activeRooms) {
 
         // Commit state parameters to room memory database records on the server
         currentRoom.gameActive = true;
-        currentRoom.host = socket.nickname; // The sender becomes the established target player to guess
+        currentRoom.participantResults = [];
+        currentRoom.batchScoresUpdatedAt = null;
+        let hostUpdated = false;
+        if (!currentRoom.host) {
+            currentRoom.host = socket.nickname; // Set host only when none exists yet
+            hostUpdated = true;
+        }
         currentRoom.activeItemIds = cleanIds;
         currentRoom.startedAt = new Date().toISOString();
+        currentRoom.durationMinutes = parsedDurationMinutes;
 
         logger.info(`[PARTIDA] Juego iniciado en sala ${rc} por el anfitrión: ${socket.nickname}`);
 
+        // Broadcast host update to the room so clients can hide/disable host-only UI
+        if (hostUpdated) {
+            io.to(rc).emit('room_updated', {
+                roomCode: rc,
+                connectedUsers: currentRoom.connectedUsers || [],
+                host: currentRoom.host,
+                totalUsers: (currentRoom.connectedUsers || []).length,
+                message: `El host de la sala se ha establecido en ${currentRoom.host}.`
+            });
+        }
+
         // Broadcast the active game sequence configuration to EVERYONE inside the room lobby
-        io.to(rc).emit('batch_started', {
+        const batchMsg = {
             host: currentRoom.host,
+            component: component,
             itemIds: currentRoom.activeItemIds,
-            startedAt: currentRoom.startedAt
-        });
+            startedAt: currentRoom.startedAt,
+            durationMinutes: currentRoom.durationMinutes
+        };
+
+        logger.info(`[batch_started] emmited: ${batchMsg ? JSON.stringify(batchMsg) : 'Mensaje vacío'}`);
+        io.to(rc).emit('batch_started', batchMsg);
 
         broadcastAvailableRooms(io, activeRooms);
     });

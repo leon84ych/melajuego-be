@@ -19,15 +19,35 @@ function getBatchScoresEventHandler(socket, activeRooms) {
                 && currentRoom.connectedUsers.every((nickname) =>
                     participantResults.some((result) => result.nickname === nickname)
                 );
-            const gameFinished = Boolean(currentRoom?.startedAt) && (allScoresSubmitted || currentRoom?.gameActive === false);
+            const startedAtMs = Date.parse(currentRoom?.startedAt || '');
+            const durationMs = Number(currentRoom?.durationMinutes) * 60 * 1000;
+            const timeFinished = Number.isFinite(startedAtMs)
+                && Number.isFinite(durationMs)
+                && durationMs > 0
+                && Date.now() >= (startedAtMs + durationMs);
+            const gameFinished = Boolean(currentRoom?.startedAt) && (allScoresSubmitted || timeFinished);
+
+            if (currentRoom?.gameActive && gameFinished) {
+                currentRoom.gameActive = false;
+            }
 
             socket.emit('room_batch_scores', {
                 roomCode: rc,
                 participantResults,
                 startedAt: currentRoom?.startedAt || null,
+                durationMinutes: currentRoom?.durationMinutes || null,
                 updatedAt: currentRoom?.batchScoresUpdatedAt || new Date().toISOString(),
                 gameFinished
             });
+
+            logger.info(`get_room_batch_scores response: ${JSON.stringify({
+                roomCode: rc,
+                participantResults,
+                startedAt: currentRoom?.startedAt || null,
+                durationMinutes: currentRoom?.durationMinutes || null,
+                updatedAt: currentRoom?.batchScoresUpdatedAt || new Date().toISOString(),
+                gameFinished
+            })}`);
         });
 }
 
