@@ -16,9 +16,10 @@ const server = http.createServer(app);
 const io = new Server(server, {
     cors: {
         origin: [
-             "http://localhost:4200",
-             "https://leon84ych.github.io",
-             "https://melajuego.netlify.app"
+            "http://localhost:4200",
+            "https://leon84ych.github.io",
+            'https://melajuego.vercel.app',
+            'https://melajuegofe.netlify.app',
         ],
         methods: ["GET", "POST"]
     }

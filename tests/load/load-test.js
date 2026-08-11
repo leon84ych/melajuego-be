@@ -2,7 +2,7 @@ const { io } = require("socket.io-client");
 
 
 const URL = "http://localhost:8080"; // Tu servidor local
-//const URL = "https://fuchile-be.fly.dev"
+//const URL = "https://melajuego-be.fly.dev"
 const TOTAL_USERS = 10;
 const ARRIVAL_DELAY_MS = 1000;
 

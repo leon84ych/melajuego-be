@@ -1,7 +1,7 @@
 const usernamesProhibidos = new Set([
     'admin', 'administrador', 'root', 'mod', 'moderador',
     'support', 'soporte', 'system', 'sistema', 'bot',
-    'fuchile', 'test', 'prueba', 'guest', 'invitado',
+    'melajuego', 'test', 'prueba', 'guest', 'invitado',
     'leon84ych', 'leon', 'leon84', 'leon84y',
     // Agrega aquí los que necesites de la lista de arriba
 ]);
